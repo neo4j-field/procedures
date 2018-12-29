@@ -41,10 +41,16 @@
     <properties>
         <neo4j.version>3.5.1</neo4j.version>
         <neo4j.driver.version>1.7.2</neo4j.driver.version>
+        <roaring.version>0.7.30</roaring.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.roaringbitmap</groupId>
+            <artifactId>RoaringBitmap</artifactId>
+            <version>${roaring.version}</version>
+        </dependency>
         <dependency>
             <!-- This gives us the Procedure API our runtime code uses.
                  We have a `provided` scope on it, because when this is

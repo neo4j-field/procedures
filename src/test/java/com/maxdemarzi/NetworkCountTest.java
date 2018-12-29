@@ -35,6 +35,46 @@ public class NetworkCountTest {
         }
     }
 
+    @Test
+    public void shouldNetworkCount2()
+    {
+        // In a try-block, to make sure we close the driver after the test
+        try( Driver driver = GraphDatabase.driver( neo4j.boltURI() , Config.build().withoutEncryption().toConfig() ) )
+        {
+
+            // Given I've started Neo4j with the procedure
+            //       which my 'neo4j' rule above does.
+            Session session = driver.session();
+
+            // When I use the procedure
+            StatementResult result = session.run( "CALL com.maxdemarzi.network.count2($username, $distance)",
+                    parameters( "username", "User-1", "distance", 3 ) );
+
+            // Then I should get what I expect
+            assertThat(result.single().get("value").asLong(), equalTo(5L));
+        }
+    }
+
+    @Test
+    public void shouldNetworkCount3()
+    {
+        // In a try-block, to make sure we close the driver after the test
+        try( Driver driver = GraphDatabase.driver( neo4j.boltURI() , Config.build().withoutEncryption().toConfig() ) )
+        {
+
+            // Given I've started Neo4j with the procedure
+            //       which my 'neo4j' rule above does.
+            Session session = driver.session();
+
+            // When I use the procedure
+            StatementResult result = session.run( "CALL com.maxdemarzi.network.count3($username, $distance)",
+                    parameters( "username", "User-1", "distance", 3 ) );
+
+            // Then I should get what I expect
+            assertThat(result.single().get("value").asLong(), equalTo(5L));
+        }
+    }
+
     private static final String MODEL_STATEMENT =
             "CREATE (n1:User { username:'User-1' })" +
                     "CREATE (n2:User { username:'User-2' })" +

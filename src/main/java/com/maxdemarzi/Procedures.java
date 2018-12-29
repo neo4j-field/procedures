@@ -3,8 +3,10 @@ package com.maxdemarzi;
 import com.maxdemarzi.results.LongResult;
 import com.maxdemarzi.results.StringResult;
 import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.traversal.*;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
+import org.roaringbitmap.longlong.Roaring64NavigableMap;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -30,7 +32,7 @@ public class Procedures {
     }
 
     @Procedure(name = "com.maxdemarzi.network.count", mode = Mode.READ)
-    @Description("CALL com.maxdemarzi.network.count(String said)")
+    @Description("CALL com.maxdemarzi.network.count(String username, Long distance)")
     public Stream<LongResult> networkCount(@Name("username") String username, @Name(value="distance", defaultValue = "1") Long distance) {
         if (distance < 1) return Stream.empty();
 
@@ -38,7 +40,6 @@ public class Procedures {
         if (user == null) {
             return Stream.empty();
         } else {
-            Long count = 0L;
             Iterator<Node> iterator;
             Node current;
 
@@ -79,22 +80,112 @@ public class Procedures {
                             nextB.add(r.getOtherNode(current));
                         }
                     }
-
                 }
-                if((distance % 2) == 0) {
-                    seen.addAll(nextA);
-                } else {
-                    seen.addAll(nextB);
-                }
-
-                // remove starting node
-                seen.remove(user);
             }
 
-            count = (long) seen.size();
-            return Stream.of(new LongResult(count));
+            if((distance % 2) == 0) {
+                seen.addAll(nextA);
+            } else {
+                seen.addAll(nextB);
+            }
+
+            // remove starting node
+            seen.remove(user);
+
+            return Stream.of(new LongResult((long) seen.size()));
         }
     }
 
+    @Procedure("com.maxdemarzi.network.count2")
+    @Description("com.maxdemarzi.network.count2((String username, Long distance)")
+    public Stream<LongResult> networkCount2(@Name("username") String username, @Name(value="distance", defaultValue = "1") Long distance) {
+        if (distance < 1) return Stream.empty();
 
+        Node user = db.findNode(Label.label("User"), "username", username);
+        if (user == null) {
+            return Stream.empty();
+        } else {
+            TraversalDescription td = db.traversalDescription()
+                    .breadthFirst()
+                    .expand(PathExpanders.allTypesAndDirections())
+                    .evaluator(Evaluators.toDepth(distance.intValue()))
+                    .uniqueness(Uniqueness.NODE_GLOBAL);
+            int count = 0;
+            for (Path ignored : td.traverse(user)) {
+                count++;
+            }
+
+            // remove starting node
+            count--;
+            return Stream.of(new LongResult((long) count));
+        }
+    }
+
+    @Procedure("com.maxdemarzi.network.count3")
+    @Description("com.maxdemarzi.network.count3((String username, Long distance)")
+    public Stream<LongResult> networkCount3(@Name("username") String username, @Name(value="distance", defaultValue = "1") Long distance) {
+        if (distance < 1) return Stream.empty();
+
+        Node user = db.findNode(Label.label("User"), "username", username);
+        if (user == null) {
+            return Stream.empty();
+        } else {
+
+            Node node;
+            // Initialize bitmaps for iteration
+            Roaring64NavigableMap seen = new Roaring64NavigableMap();
+            Roaring64NavigableMap nextA = new Roaring64NavigableMap();
+            Roaring64NavigableMap nextB = new Roaring64NavigableMap();
+            long nodeId = user.getId();
+            seen.add(nodeId);
+            Iterator<Long> iterator;
+
+            // First Hop
+            for (Relationship r : user.getRelationships()) {
+                nextB.add(r.getOtherNodeId(nodeId));
+            }
+
+
+            for (int i = 1; i < distance; i++) {
+                // next even Hop
+                nextB.andNot(seen);
+                seen.or(nextB);
+                nextA.clear();
+                iterator = nextB.iterator();
+                while (iterator.hasNext()) {
+                    nodeId = iterator.next();
+                    node = db.getNodeById(nodeId);
+                    for (Relationship r : node.getRelationships()) {
+                        nextA.add(r.getOtherNodeId(nodeId));
+                    }
+                }
+
+                i++;
+                if (i < distance) {
+                    // next odd Hop
+                    nextA.andNot(seen);
+                    seen.or(nextA);
+                    nextB.clear();
+                    iterator = nextA.iterator();
+                    while (iterator.hasNext()) {
+                        nodeId = iterator.next();
+                        node = db.getNodeById(nodeId);
+                        for (Relationship r : node.getRelationships()) {
+                            nextB.add(r.getOtherNodeId(nodeId));
+                        }
+                    }
+                }
+            }
+
+            if ((distance % 2) == 0) {
+                seen.or(nextA);
+            } else {
+                seen.or(nextB);
+            }
+            // remove starting node
+            seen.removeLong(user.getId());
+
+            return Stream.of(new LongResult(seen.getLongCardinality()));
+        }
+    }
 }
