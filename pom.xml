@@ -25,7 +25,7 @@
                      of each Neo4j instance in your deployment.
                      After a restart, the procedure is available for calling. -->
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.4.3</version>
+                <version>3.2.1</version>
                 <executions>
                     <execution>
                         <phase>package</phase>

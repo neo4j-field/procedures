@@ -105,6 +105,31 @@ public class Procedures {
         if (user == null) {
             return Stream.empty();
         } else {
+            HashSet<Node> nodes = new HashSet<>();
+            TraversalDescription td = db.traversalDescription()
+                    .depthFirst()
+                    .expand(PathExpanders.allTypesAndDirections())
+                    .evaluator(Evaluators.toDepth(distance.intValue()))
+                    .uniqueness(Uniqueness.RELATIONSHIP_PATH);
+            for (Path ignored : td.traverse(user)) {
+                nodes.add(ignored.endNode());
+            }
+
+            // remove starting node
+            nodes.remove(user);
+            return Stream.of(new LongResult((long)nodes.size()));
+        }
+    }
+
+    @Procedure("com.maxdemarzi.network.count3")
+    @Description("com.maxdemarzi.network.count3((String username, Long distance)")
+    public Stream<LongResult> networkCount3(@Name("username") String username, @Name(value="distance", defaultValue = "1") Long distance) {
+        if (distance < 1) return Stream.empty();
+
+        Node user = db.findNode(Label.label("User"), "username", username);
+        if (user == null) {
+            return Stream.empty();
+        } else {
             TraversalDescription td = db.traversalDescription()
                     .breadthFirst()
                     .expand(PathExpanders.allTypesAndDirections())
@@ -121,9 +146,76 @@ public class Procedures {
         }
     }
 
-    @Procedure("com.maxdemarzi.network.count3")
-    @Description("com.maxdemarzi.network.count3((String username, Long distance)")
-    public Stream<LongResult> networkCount3(@Name("username") String username, @Name(value="distance", defaultValue = "1") Long distance) {
+    @Procedure("com.maxdemarzi.network.count4")
+    @Description("com.maxdemarzi.network.count4((String username, Long distance)")
+    public Stream<LongResult> networkCount4(@Name("username") String username, @Name(value="distance", defaultValue = "1") Long distance) {
+        if (distance < 1) return Stream.empty();
+
+        Node user = db.findNode(Label.label("User"), "username", username);
+        if (user == null) {
+            return Stream.empty();
+        } else {
+            Iterator<Long> iterator;
+            Node current;
+            Long currentId;
+            HashSet<Long> seen = new HashSet<>();
+            HashSet<Long> nextA = new HashSet<>();
+            HashSet<Long> nextB = new HashSet<>();
+
+            seen.add(user.getId());
+
+            // First Hop
+            for (Relationship r : user.getRelationships()) {
+                nextB.add(r.getOtherNodeId(user.getId()));
+            }
+
+            for(int i = 1; i < distance; i++) {
+                // next even Hop
+                nextB.removeAll(seen);
+                seen.addAll(nextB);
+                nextA.clear();
+                iterator = nextB.iterator();
+                while (iterator.hasNext()) {
+                    currentId = iterator.next();
+                    current = db.getNodeById(currentId);
+                    for (Relationship r : current.getRelationships()) {
+                        nextA.add(r.getOtherNodeId(currentId));
+                    }
+                }
+
+                i++;
+                if (i < distance) {
+                    // next odd Hop
+                    nextA.removeAll(seen);
+                    seen.addAll(nextA);
+                    nextB.clear();
+                    iterator = nextA.iterator();
+                    while (iterator.hasNext()) {
+                        currentId = iterator.next();
+                        current = db.getNodeById(currentId);
+                        for (Relationship r : current.getRelationships()) {
+                            nextB.add(r.getOtherNodeId(currentId));
+                        }
+                    }
+                }
+            }
+
+            if((distance % 2) == 0) {
+                seen.addAll(nextA);
+            } else {
+                seen.addAll(nextB);
+            }
+
+            // remove starting node
+            seen.remove(user.getId());
+
+            return Stream.of(new LongResult((long) seen.size()));
+        }
+    }
+
+    @Procedure("com.maxdemarzi.network.count5")
+    @Description("com.maxdemarzi.network.count5((String username, Long distance)")
+    public Stream<LongResult> networkCount5(@Name("username") String username, @Name(value="distance", defaultValue = "1") Long distance) {
         if (distance < 1) return Stream.empty();
 
         Node user = db.findNode(Label.label("User"), "username", username);
