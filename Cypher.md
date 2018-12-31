@@ -11,10 +11,14 @@ Create Relationships:
     WITH u1,u2
     LIMIT 5000000
     WHERE rand() < 0.1
-    CREATE (u1)-[:FRIENDS]->(u2);
+    CREATE (u1)-[:FRIENDS {weight: rand()}]->(u2);
 
 Create Index:
 
     CREATE INDEX ON :User(username);
     
-    
+Get 10k usernames:
+
+    MATCH (n:User) 
+    RETURN n.username 
+    LIMIT 10000    
