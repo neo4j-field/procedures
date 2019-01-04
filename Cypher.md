@@ -16,9 +16,24 @@ Create Relationships:
 Create Index:
 
     CREATE INDEX ON :User(username);
+
+
+Get the network side for Khloe17 4 hops out:
+
+    MATCH (u:User{username:'Khloe17'})-[*1..4]->(c) 
+    RETURN count(DISTINCT c)
+
+Takes about a second. Now take the arrow sign off:
+
+    MATCH (u:User{username:'Khloe17'})-[*1..4]-(c) 
+    RETURN count(DISTINCT c)
+
+OMG, so long...
     
 Get 10k usernames:
 
     MATCH (n:User) 
     RETURN n.username 
     LIMIT 10000    
+    
+    
