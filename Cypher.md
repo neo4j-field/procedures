@@ -36,4 +36,21 @@ Get 10k usernames:
     RETURN n.username 
     LIMIT 10000    
     
+Reach Query:
+    
+    MATCH p=(u:User)-[*1..2]-(u2:User) 
+    WHERE u.username = 'Khloe17' AND
+          u2.username = 'Michelle21'      
+    RETURN p, REDUCE(weight = 0.0, r in relationships(p) | weight + r.weight) / length(p) AS weight
+    ORDER BY weight DESC
+    LIMIT 100
+    
+Good Friends Query:
+        
+    MATCH p=(u:User)-[*1..4]-(u2:User) 
+    WHERE u.username = 'Khloe17' AND u2.username = 'Michelle21' AND
+          ALL (r IN relationships(p) WHERE r.weight >= 0.80)
+    RETURN p, REDUCE(weight = 0.0, r in relationships(p) | weight + r.weight) / length(p) AS weight
+    ORDER BY weight DESC
+    LIMIT 100
     

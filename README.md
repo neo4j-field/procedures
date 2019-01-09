@@ -20,10 +20,25 @@ Restart your Neo4j Server. Your new Stored Procedures are available:
     CALL com.maxdemarzi.network.count2('Khloe17', 3);
     CALL com.maxdemarzi.network.count3('Khloe17', 3);
     CALL com.maxdemarzi.network.count4('Khloe17', 3);
-    CALL com.maxdemarzi.network.count5('Khloe17', 3);
+    CALL com.maxdemarzi.network.count5('Khloe17', 3);    
+
+    CALL com.maxdemarzi.reach.after('Khloe17', 'Michelle21')
+    CALL com.maxdemarzi.reach.evaluator('Khloe17', 'Michelle21')
+    CALL com.maxdemarzi.reach.expander('Khloe17', 'Michelle21')
     
-Compare to:
+Network Count:
 
     MATCH (u:User{username:'Khloe17'})-[*1..4]-(c) 
     RETURN count(DISTINCT c)
     
+
+Reach:
+
+    MATCH p=(u:User)-[*1..4]-(u2:User) 
+    WHERE u.username = 'Khloe17' AND u2.username = 'Michelle21' AND
+          ALL (r IN relationships(p) WHERE r.weight >= 0.80)
+    RETURN p, REDUCE(weight = 0.0, r in relationships(p) | weight + r.weight) / length(p) AS weight
+    ORDER BY weight DESC
+    LIMIT 100
+    
+        

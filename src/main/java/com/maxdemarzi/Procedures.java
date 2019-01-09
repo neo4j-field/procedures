@@ -1,15 +1,13 @@
 package com.maxdemarzi;
 
-import com.maxdemarzi.results.LongResult;
-import com.maxdemarzi.results.StringResult;
+import com.maxdemarzi.results.*;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.traversal.*;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
 import org.roaringbitmap.longlong.Roaring64NavigableMap;
 
-import java.util.HashSet;
-import java.util.Iterator;
+import java.util.*;
 import java.util.stream.Stream;
 
 
@@ -33,7 +31,7 @@ public class Procedures {
 
     @Procedure(name = "com.maxdemarzi.network.count", mode = Mode.READ)
     @Description("CALL com.maxdemarzi.network.count(String username, Long distance)")
-    public Stream<LongResult> networkCount(@Name("username") String username, @Name(value="distance", defaultValue = "1") Long distance) {
+    public Stream<LongResult> networkCount(@Name("username") String username, @Name(value = "distance", defaultValue = "1") Long distance) {
         if (distance < 1) return Stream.empty();
 
         Node user = db.findNode(Label.label("User"), "username", username);
@@ -54,7 +52,7 @@ public class Procedures {
                 nextB.add(r.getOtherNode(user));
             }
 
-            for(int i = 1; i < distance; i++) {
+            for (int i = 1; i < distance; i++) {
                 // next even Hop
                 nextB.removeAll(seen);
                 seen.addAll(nextB);
@@ -83,7 +81,7 @@ public class Procedures {
                 }
             }
 
-            if((distance % 2) == 0) {
+            if ((distance % 2) == 0) {
                 seen.addAll(nextA);
             } else {
                 seen.addAll(nextB);
@@ -97,8 +95,8 @@ public class Procedures {
     }
 
     @Procedure("com.maxdemarzi.network.count2")
-    @Description("com.maxdemarzi.network.count2((String username, Long distance)")
-    public Stream<LongResult> networkCount2(@Name("username") String username, @Name(value="distance", defaultValue = "1") Long distance) {
+    @Description("com.maxdemarzi.network.count2(String username, Long distance)")
+    public Stream<LongResult> networkCount2(@Name("username") String username, @Name(value = "distance", defaultValue = "1") Long distance) {
         if (distance < 1) return Stream.empty();
 
         Node user = db.findNode(Label.label("User"), "username", username);
@@ -117,13 +115,13 @@ public class Procedures {
 
             // remove starting node
             nodes.remove(user);
-            return Stream.of(new LongResult((long)nodes.size()));
+            return Stream.of(new LongResult((long) nodes.size()));
         }
     }
 
     @Procedure("com.maxdemarzi.network.count3")
-    @Description("com.maxdemarzi.network.count3((String username, Long distance)")
-    public Stream<LongResult> networkCount3(@Name("username") String username, @Name(value="distance", defaultValue = "1") Long distance) {
+    @Description("com.maxdemarzi.network.count3(String username, Long distance)")
+    public Stream<LongResult> networkCount3(@Name("username") String username, @Name(value = "distance", defaultValue = "1") Long distance) {
         if (distance < 1) return Stream.empty();
 
         Node user = db.findNode(Label.label("User"), "username", username);
@@ -147,8 +145,8 @@ public class Procedures {
     }
 
     @Procedure("com.maxdemarzi.network.count4")
-    @Description("com.maxdemarzi.network.count4((String username, Long distance)")
-    public Stream<LongResult> networkCount4(@Name("username") String username, @Name(value="distance", defaultValue = "1") Long distance) {
+    @Description("com.maxdemarzi.network.count4(String username, Long distance)")
+    public Stream<LongResult> networkCount4(@Name("username") String username, @Name(value = "distance", defaultValue = "1") Long distance) {
         if (distance < 1) return Stream.empty();
 
         Node user = db.findNode(Label.label("User"), "username", username);
@@ -169,7 +167,7 @@ public class Procedures {
                 nextB.add(r.getOtherNodeId(user.getId()));
             }
 
-            for(int i = 1; i < distance; i++) {
+            for (int i = 1; i < distance; i++) {
                 // next even Hop
                 nextB.removeAll(seen);
                 seen.addAll(nextB);
@@ -200,7 +198,7 @@ public class Procedures {
                 }
             }
 
-            if((distance % 2) == 0) {
+            if ((distance % 2) == 0) {
                 seen.addAll(nextA);
             } else {
                 seen.addAll(nextB);
@@ -214,8 +212,8 @@ public class Procedures {
     }
 
     @Procedure("com.maxdemarzi.network.count5")
-    @Description("com.maxdemarzi.network.count5((String username, Long distance)")
-    public Stream<LongResult> networkCount5(@Name("username") String username, @Name(value="distance", defaultValue = "1") Long distance) {
+    @Description("com.maxdemarzi.network.count5(String username, Long distance)")
+    public Stream<LongResult> networkCount5(@Name("username") String username, @Name(value = "distance", defaultValue = "1") Long distance) {
         if (distance < 1) return Stream.empty();
 
         Node user = db.findNode(Label.label("User"), "username", username);
@@ -280,4 +278,117 @@ public class Procedures {
             return Stream.of(new LongResult(seen.getLongCardinality()));
         }
     }
+    @Procedure("com.maxdemarzi.reach.after")
+    @Description("com.maxdemarzi.reach.after(String username1, String username2)")
+    public Stream<WeightedPathResult> reachAfter(@Name("username1") String username1, @Name("username2") String username2) {
+        Node user1 = db.findNode(Label.label("User"), "username", username1);
+        Node user2 = db.findNode(Label.label("User"), "username", username2);
+        if (user1 == null || user2 == null) {
+            return Stream.empty();
+        }
+
+        TraversalDescription leftSide = db.traversalDescription()
+                .depthFirst()
+                .expand(PathExpanders.allTypesAndDirections())
+                .evaluator(Evaluators.toDepth(2))
+                .uniqueness(Uniqueness.RELATIONSHIP_PATH);
+
+        TraversalDescription rightSide = db.traversalDescription()
+                .depthFirst()
+                .expand(PathExpanders.allTypesAndDirections())
+                .evaluator(Evaluators.toDepth(2))
+                .uniqueness(Uniqueness.RELATIONSHIP_PATH);
+
+        BidirectionalTraversalDescription bidirtd = db.bidirectionalTraversalDescription()
+                .startSide(leftSide)
+                .endSide(rightSide);
+
+        ArrayList<WeightedPathResult> list = new ArrayList<>();
+
+        outerloop:
+        for (Path path : bidirtd.traverse(user1, user2)) {
+            double weight = 0.0;
+            for (Relationship r : path.relationships()) {
+                double each = (double) r.getProperty("weight");
+                if (each >= 0.80) {
+                    weight += each;
+                } else {
+                    continue outerloop;
+                }
+            }
+            list.add(new WeightedPathResult(path, weight / path.length()));
+        }
+
+        list.sort((o1, o2) -> Double.compare(o2.weight, o1.weight));
+
+        return list.stream().limit(100);
+    }
+
+    @Procedure("com.maxdemarzi.reach.evaluator")
+    @Description("com.maxdemarzi.reach.evaluator(String username1, String username2)")
+    public Stream<WeightedPathResult> reachEvaluator(@Name("username1") String username1, @Name("username2") String username2) {
+        Node user1 = db.findNode(Label.label("User"), "username", username1);
+        Node user2 = db.findNode(Label.label("User"), "username", username2);
+        if (user1 == null || user2 == null) {
+            return Stream.empty();
+        }
+
+        TraversalDescription eachSide = db.traversalDescription()
+                .breadthFirst()
+                .expand(PathExpanders.allTypesAndDirections())
+                .evaluator(Evaluators.toDepth(2))
+                .evaluator(new GoodFriendEvaluator())
+                .uniqueness(Uniqueness.RELATIONSHIP_PATH);
+
+        BidirectionalTraversalDescription bidirtd = db.bidirectionalTraversalDescription()
+                .mirroredSides(eachSide);
+
+        ArrayList<WeightedPathResult> list = new ArrayList<>();
+
+        for (Path path : bidirtd.traverse(user1, user2)) {
+            double weight = 0.0;
+            for (Relationship r : path.relationships()) {
+                weight += (double) r.getProperty("weight");
+            }
+            list.add(new WeightedPathResult(path, weight / path.length()));
+        }
+
+        list.sort((o1, o2) -> Double.compare(o2.weight, o1.weight));
+
+        return list.stream().limit(100);
+    }
+
+    @Procedure("com.maxdemarzi.reach.expander")
+    @Description("com.maxdemarzi.reach.expander(String username1, String username2)")
+    public Stream<WeightedPathResult> reachExpander(@Name("username1") String username1, @Name("username2") String username2) {
+        Node user1 = db.findNode(Label.label("User"), "username", username1);
+        Node user2 = db.findNode(Label.label("User"), "username", username2);
+        if (user1 == null || user2 == null) {
+            return Stream.empty();
+        }
+
+        TraversalDescription eachSide = db.traversalDescription()
+                .breadthFirst()
+                .expand(new GoodFriendExpander())
+                .evaluator(Evaluators.toDepth(2))
+                .uniqueness(Uniqueness.RELATIONSHIP_PATH);
+
+        BidirectionalTraversalDescription bidirtd = db.bidirectionalTraversalDescription()
+                .mirroredSides(eachSide);
+
+        ArrayList<WeightedPathResult> list = new ArrayList<>();
+
+        for (Path path : bidirtd.traverse(user1, user2)) {
+            double weight = 0.0;
+            for (Relationship r : path.relationships()) {
+                weight += (double) r.getProperty("weight");
+            }
+            list.add(new WeightedPathResult(path, weight / path.length()));
+        }
+
+        list.sort((o1, o2) -> Double.compare(o2.weight, o1.weight));
+
+        return list.stream().limit(100);
+    }
+
 }
