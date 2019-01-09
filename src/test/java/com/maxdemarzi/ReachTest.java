@@ -75,6 +75,26 @@ public class ReachTest {
         }
     }
 
+    @Test
+    public void shouldReachBoth()
+    {
+        // In a try-block, to make sure we close the driver after the test
+        try( Driver driver = GraphDatabase.driver( neo4j.boltURI() , Config.build().withoutEncryption().toConfig() ) )
+        {
+
+            // Given I've started Neo4j with the procedure
+            //       which my 'neo4j' rule above does.
+            Session session = driver.session();
+
+            // When I use the procedure
+            StatementResult result = session.run( "CALL com.maxdemarzi.reach.both($username1, $username2)",
+                    parameters( "username1", "User-1", "username2", "User-6" ) );
+
+            // Then I should get what I expect
+            assertThat(result.list().size(), equalTo(1));
+        }
+    }
+
     private static final String MODEL_STATEMENT =
             "CREATE (n1:User { username:'User-1' })" +
                     "CREATE (n2:User { username:'User-2' })" +

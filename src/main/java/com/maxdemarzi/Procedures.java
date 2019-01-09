@@ -291,13 +291,13 @@ public class Procedures {
                 .depthFirst()
                 .expand(PathExpanders.allTypesAndDirections())
                 .evaluator(Evaluators.toDepth(2))
-                .uniqueness(Uniqueness.RELATIONSHIP_PATH);
+                .uniqueness(Uniqueness.NODE_PATH);
 
         TraversalDescription rightSide = db.traversalDescription()
                 .depthFirst()
                 .expand(PathExpanders.allTypesAndDirections())
                 .evaluator(Evaluators.toDepth(2))
-                .uniqueness(Uniqueness.RELATIONSHIP_PATH);
+                .uniqueness(Uniqueness.NODE_PATH);
 
         BidirectionalTraversalDescription bidirtd = db.bidirectionalTraversalDescription()
                 .startSide(leftSide)
@@ -338,7 +338,7 @@ public class Procedures {
                 .expand(PathExpanders.allTypesAndDirections())
                 .evaluator(Evaluators.toDepth(2))
                 .evaluator(new GoodFriendEvaluator())
-                .uniqueness(Uniqueness.RELATIONSHIP_PATH);
+                .uniqueness(Uniqueness.NODE_PATH);
 
         BidirectionalTraversalDescription bidirtd = db.bidirectionalTraversalDescription()
                 .mirroredSides(eachSide);
@@ -371,7 +371,7 @@ public class Procedures {
                 .breadthFirst()
                 .expand(new GoodFriendExpander())
                 .evaluator(Evaluators.toDepth(2))
-                .uniqueness(Uniqueness.RELATIONSHIP_PATH);
+                .uniqueness(Uniqueness.NODE_PATH);
 
         BidirectionalTraversalDescription bidirtd = db.bidirectionalTraversalDescription()
                 .mirroredSides(eachSide);
@@ -389,6 +389,37 @@ public class Procedures {
         list.sort((o1, o2) -> Double.compare(o2.weight, o1.weight));
 
         return list.stream().limit(100);
+    }
+
+    @Procedure("com.maxdemarzi.reach.both")
+    @Description("com.maxdemarzi.reach.both(String username1, String username2)")
+    public Stream<WeightedPathResult> reachBoth(@Name("username1") String username1, @Name("username2") String username2) {
+        Node user1 = db.findNode(Label.label("User"), "username", username1);
+        Node user2 = db.findNode(Label.label("User"), "username", username2);
+        if (user1 == null || user2 == null) {
+            return Stream.empty();
+        }
+
+        Comparator<WeightedPathResult> comparator = (o1, o2) -> Double.compare(o2.weight, o1.weight);
+
+        PriorityQueue<WeightedPathResult> paths = new PriorityQueue<>(100, comparator);
+
+        TraversalDescription eachSide = db.traversalDescription()
+                .breadthFirst()
+                .expand(new GoodFriendExpander())
+                .evaluator(Evaluators.toDepth(2))
+                .uniqueness(Uniqueness.NODE_PATH);
+
+        BidirectionalTraversalDescription bidirtd = db.bidirectionalTraversalDescription()
+                .mirroredSides(eachSide)
+                .collisionEvaluator(new TooManyFriendsEvaluator(paths));
+
+        int count = 0;
+        for (Path ignore : bidirtd.traverse(user1, user2)) {
+            count++;
+        }
+
+        return paths.stream();
     }
 
 }
