@@ -11,4 +11,12 @@ public class WeightedPathResult {
         this.weight = weight;
     }
 
+    public int getLength() {
+        return path.length();
+    }
+
+    public double getWeight() {
+        return weight;
+    }
+
 }

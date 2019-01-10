@@ -278,6 +278,11 @@ public class Procedures {
             return Stream.of(new LongResult(seen.getLongCardinality()));
         }
     }
+
+    private static final Comparator<WeightedPathResult> comparator = Comparator.comparingInt(WeightedPathResult::getLength)
+            .thenComparing(Comparator.comparingDouble(WeightedPathResult::getWeight).reversed());
+
+
     @Procedure("com.maxdemarzi.reach.after")
     @Description("com.maxdemarzi.reach.after(String username1, String username2)")
     public Stream<WeightedPathResult> reachAfter(@Name("username1") String username1, @Name("username2") String username2) {
@@ -319,7 +324,8 @@ public class Procedures {
             list.add(new WeightedPathResult(path, weight / path.length()));
         }
 
-        list.sort((o1, o2) -> Double.compare(o2.weight, o1.weight));
+
+        list.sort(comparator);
 
         return list.stream().limit(100);
     }
@@ -353,7 +359,7 @@ public class Procedures {
             list.add(new WeightedPathResult(path, weight / path.length()));
         }
 
-        list.sort((o1, o2) -> Double.compare(o2.weight, o1.weight));
+        list.sort(comparator);
 
         return list.stream().limit(100);
     }
@@ -386,7 +392,7 @@ public class Procedures {
             list.add(new WeightedPathResult(path, weight / path.length()));
         }
 
-        list.sort((o1, o2) -> Double.compare(o2.weight, o1.weight));
+        list.sort(comparator);
 
         return list.stream().limit(100);
     }
@@ -399,8 +405,6 @@ public class Procedures {
         if (user1 == null || user2 == null) {
             return Stream.empty();
         }
-
-        Comparator<WeightedPathResult> comparator = (o1, o2) -> Double.compare(o2.weight, o1.weight);
 
         PriorityQueue<WeightedPathResult> paths = new PriorityQueue<>(100, comparator);
 

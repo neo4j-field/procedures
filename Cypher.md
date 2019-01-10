@@ -51,6 +51,6 @@ Good Friends Query:
     WHERE u.username = 'Khloe17' AND u2.username = 'Michelle21' AND
           ALL (r IN relationships(p) WHERE r.weight >= 0.80)
     RETURN p, REDUCE(weight = 0.0, r in relationships(p) | weight + r.weight) / length(p) AS weight
-    ORDER BY weight DESC
+    ORDER BY length(p), weight DESC
     LIMIT 100
     
