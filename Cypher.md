@@ -53,4 +53,25 @@ Good Friends Query:
     RETURN p, REDUCE(weight = 0.0, r in relationships(p) | weight + r.weight) / length(p) AS weight
     ORDER BY length(p), weight DESC
     LIMIT 100
-    
+
+Report Queries:
+
+    MATCH (u:User)-[:FRIENDS]-(u2:User)-[:FRIENDS]-(u3:User)
+    RETURN u.username, u2.username, u3.username
+    LIMIT 100
+
+    EXPLAIN MATCH (u:User)-[:FRIENDS]-(u2:User)-[:FRIENDS]-(u3:User)
+    RETURN u.username, u2.username, u3.username
+    ORDER BY u.username, u2.username, u3.username
+    LIMIT 100
+
+    EXPLAIN MATCH (u:User)-[:FRIENDS]-(u2:User)-[:FRIENDS]-(u3:User)
+    RETURN u.username, u3.username, COUNT(u2)
+    LIMIT 100
+
+Analytic Query:
+
+    EXPLAIN MATCH (u:User)-[:FRIENDS]-(u2:User)-[:FRIENDS]-(u3:User)
+    WITH u, u3, COUNT(u2) AS counts
+    RETURN counts, COUNT(*)
+    ORDER BY counts

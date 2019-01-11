@@ -26,6 +26,9 @@ Restart your Neo4j Server. Your new Stored Procedures are available:
     CALL com.maxdemarzi.reach.evaluator('Khloe17', 'Michelle21')
     CALL com.maxdemarzi.reach.expander('Khloe17', 'Michelle21')
     
+    CALL com.maxdemarzi.fic.local('/Users/maxdemarzi/Documents/Projects/procedures/fic-local.csv')
+    CALL com.maxdemarzi.fic.global('/Users/maxdemarzi/Documents/Projects/procedures/fic-global.csv')
+    
 Network Count:
 
     MATCH (u:User{username:'Khloe17'})-[*1..4]-(c) 
@@ -41,4 +44,14 @@ Reach:
     ORDER BY weight DESC
     LIMIT 100
     
+Friends:
+
+    MATCH (u:User)-[:FRIENDS]-(u2:User)-[:FRIENDS]-(u3:User) 
+    RETURN u.username, u2.username, u3.username
+    LIMIT 100
+
+    MATCH (u:User)-[:FRIENDS]-(u2:User)-[:FRIENDS]-(u3:User) 
+    RETURN u.username, u2.username, u3.username
+    ORDER BY u.username, u2.username, u3.username
+    LIMIT 100
         

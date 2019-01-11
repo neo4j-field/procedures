@@ -42,10 +42,16 @@
         <neo4j.version>3.5.1</neo4j.version>
         <neo4j.driver.version>1.7.2</neo4j.driver.version>
         <roaring.version>0.7.30</roaring.version>
+        <fastcsv.version>1.0.3</fastcsv.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>de.siegmar</groupId>
+            <artifactId>fastcsv</artifactId>
+            <version>${fastcsv.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.roaringbitmap</groupId>
             <artifactId>RoaringBitmap</artifactId>
