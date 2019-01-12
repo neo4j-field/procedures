@@ -8,17 +8,11 @@ import org.neo4j.graphdb.traversal.Evaluator;
 public class GoodFriendEvaluator implements Evaluator {
     @Override
     public Evaluation evaluate(Path path) {
-        boolean good = true;
         for (Relationship r : path.relationships()) {
             if ((double)r.getProperty("weight") < 0.80) {
-                good = false;
-                break;
+                return Evaluation.EXCLUDE_AND_PRUNE;
             }
         }
-        if (good) {
-            return Evaluation.INCLUDE_AND_CONTINUE;
-        }
-
-        return Evaluation.EXCLUDE_AND_PRUNE;
+        return Evaluation.INCLUDE_AND_CONTINUE;
     }
 }

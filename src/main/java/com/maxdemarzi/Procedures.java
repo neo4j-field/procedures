@@ -341,6 +341,9 @@ public class Procedures {
         return list.stream().limit(100);
     }
 
+    private static final GoodFriendEvaluator evaluator = new GoodFriendEvaluator();
+    private static final GoodFriendExpander expander = new GoodFriendExpander();
+
     @Procedure("com.maxdemarzi.reach.evaluator")
     @Description("com.maxdemarzi.reach.evaluator(String username1, String username2)")
     public Stream<WeightedPathResult> reachEvaluator(@Name("username1") String username1, @Name("username2") String username2) {
@@ -353,12 +356,13 @@ public class Procedures {
         TraversalDescription eachSide = db.traversalDescription()
                 .breadthFirst()
                 .expand(PathExpanders.allTypesAndDirections())
+                .evaluator(evaluator)
                 .evaluator(Evaluators.toDepth(2))
-                .evaluator(new GoodFriendEvaluator())
                 .uniqueness(Uniqueness.NODE_PATH);
 
         BidirectionalTraversalDescription bidirtd = db.bidirectionalTraversalDescription()
-                .mirroredSides(eachSide);
+                .mirroredSides(eachSide)
+                .collisionEvaluator(evaluator);
 
         ArrayList<WeightedPathResult> list = new ArrayList<>();
 
@@ -386,7 +390,7 @@ public class Procedures {
 
         TraversalDescription eachSide = db.traversalDescription()
                 .breadthFirst()
-                .expand(new GoodFriendExpander())
+                .expand(expander)
                 .evaluator(Evaluators.toDepth(2))
                 .uniqueness(Uniqueness.NODE_PATH);
 
@@ -421,7 +425,7 @@ public class Procedures {
 
         TraversalDescription eachSide = db.traversalDescription()
                 .breadthFirst()
-                .expand(new GoodFriendExpander())
+                .expand(expander)
                 .evaluator(Evaluators.toDepth(2))
                 .uniqueness(Uniqueness.NODE_PATH);
 
@@ -443,10 +447,10 @@ public class Procedures {
             .maximumSize(100000L)
             .build(Procedures::getNodeUsername);
 
-    private static final LoadingCache<Integer, RoaringBitmap> nodeFriendsGlobal  = Caffeine.newBuilder()
+    private static final LoadingCache<Integer, RoaringBitmap> nodeFriendsGlobal = Caffeine.newBuilder()
             .maximumSize(100000L)
             .expireAfterWrite(1L, TimeUnit.HOURS)
-            .build(Procedures::getNodeFriends);;
+            .build(Procedures::getNodeFriends);
 
     private static String getNodeUsername(Integer key) {
         return (String)graph.getNodeById(key).getProperty("username");

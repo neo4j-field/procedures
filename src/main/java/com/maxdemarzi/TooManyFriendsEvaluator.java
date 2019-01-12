@@ -24,9 +24,12 @@ public class TooManyFriendsEvaluator implements Evaluator {
 
         if (paths.size() < 100) {
             paths.add(new WeightedPathResult(path, weight / path.length()));
-        } else if (paths.peek().weight < weight/path.length()) {
-            paths.poll();
-            paths.add(new WeightedPathResult(path, weight / path.length()));
+        } else {
+            WeightedPathResult last = paths.peek();
+            if(last.getLength() >= path.length() && last.weight < weight/path.length()) {
+                paths.poll();
+                paths.add(new WeightedPathResult(path, weight / path.length()));
+            }
         }
 
         return Evaluation.EXCLUDE_AND_PRUNE;
