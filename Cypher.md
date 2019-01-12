@@ -3,7 +3,7 @@
 Create Users:
 
     WITH ["Jennifer","Michelle","Tanya","Julie","Christie","Sophie","Amanda","Khloe","Sarah","Kaylee"] AS names 
-    FOREACH (r IN range(0,100000) | CREATE (:User {username:names[r % size(names)]+r}));
+    FOREACH (r IN range(1,100000) | CREATE (:User {username:names[r % size(names)]+r}));
 
 Create Relationships:
 

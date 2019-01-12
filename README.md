@@ -25,9 +25,10 @@ Restart your Neo4j Server. Your new Stored Procedures are available:
     CALL com.maxdemarzi.reach.after('Khloe17', 'Michelle21')
     CALL com.maxdemarzi.reach.evaluator('Khloe17', 'Michelle21')
     CALL com.maxdemarzi.reach.expander('Khloe17', 'Michelle21')
+        
+    CALL com.maxdemarzi.fic('/Users/maxdemarzi/Documents/Projects/procedures/fic.csv')
     
-    CALL com.maxdemarzi.fic.local('/Users/maxdemarzi/Documents/Projects/procedures/fic-local.csv')
-    CALL com.maxdemarzi.fic.global('/Users/maxdemarzi/Documents/Projects/procedures/fic-global.csv')
+    CALL com.maxdemarzi.fic.distribution
     
 Network Count:
 

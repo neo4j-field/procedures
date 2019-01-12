@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 
@@ -443,47 +444,39 @@ public class Procedures {
 
     private static GraphDatabaseService graph;
 
-    private static final LoadingCache<Integer, String> usernamesGlobal = Caffeine.newBuilder()
+    private static final LoadingCache<Integer, String> usernames = Caffeine.newBuilder()
             .maximumSize(100000L)
             .build(Procedures::getNodeUsername);
 
-    private static final LoadingCache<Integer, RoaringBitmap> nodeFriendsGlobal = Caffeine.newBuilder()
-            .maximumSize(100000L)
+    private static final LoadingCache<Integer, RoaringBitmap> nodeFriends = Caffeine.newBuilder()
+            .maximumSize(100001L)
             .expireAfterWrite(1L, TimeUnit.HOURS)
             .build(Procedures::getNodeFriends);
 
     private static String getNodeUsername(Integer key) {
-        return (String)graph.getNodeById(key).getProperty("username");
+        return (String) graph.getNodeById(key).getProperty("username");
     }
 
     private static RoaringBitmap getNodeFriends(Integer key) {
         Node user = graph.getNodeById(key);
         RoaringBitmap friends = new RoaringBitmap();
         for (Relationship r : user.getRelationships(RelationshipType.withName("FRIENDS"))) {
-            friends.add((int)r.getOtherNodeId(key));
+            friends.add((int) r.getOtherNodeId(key));
         }
         return friends;
     }
 
-    @Procedure(value="com.maxdemarzi.fic.local")
-    @Description(value="com.maxdemarzi.fic.local(String path)")
-    public Stream<StringResult> friendsInCommonLocal(@Name(value="path") String path) throws IOException {
+    @Procedure(value = "com.maxdemarzi.fic")
+    @Description(value = "com.maxdemarzi.fic(String path)")
+    public Stream<StringResult> friendsInCommon(@Name(value = "path") String path) throws IOException {
         if (graph == null) {
             graph = this.db;
         }
-        LoadingCache<Integer, String> usernamesLocal = Caffeine.newBuilder()
-                .maximumSize(100000L)
-                .build(Procedures::getNodeUsername);
-        LoadingCache<Integer, RoaringBitmap> nodeFriendsLocal = Caffeine.newBuilder()
-                .maximumSize(100000L)
-                .expireAfterWrite(1L, TimeUnit.HOURS)
-                .build(Procedures::getNodeFriends);
-
         ResourceIterator userIterator = db.findNodes(Label.label("User"));
         ArrayList<Pair<String, Node>> users = new ArrayList<>();
         while (userIterator.hasNext()) {
-            Node user = (Node)userIterator.next();
-            String username = usernamesLocal.get((int)user.getId());
+            Node user = (Node) userIterator.next();
+            String username = usernames.get((int) user.getId());
             users.add(Pair.of(username, user));
         }
         users.sort(Comparator.comparing(Pair<String, Node>::first));
@@ -494,27 +487,25 @@ public class Procedures {
 
         File file = new File(path);
         CsvWriter csvWriter = new CsvWriter();
-        try (CsvAppender csvAppender = csvWriter.append(file, StandardCharsets.UTF_8)){
+        try (CsvAppender csvAppender = csvWriter.append(file, StandardCharsets.UTF_8)) {
             csvAppender.appendLine("user", "fof", "fic_count");
             int userCount = 0;
             for (Pair<String, Node> pair : users) {
                 int fof;
-                if (userCount++ > 100) {
-                    break;
-                }
+                if (userCount++ > 1000) break; // short circuit for class
                 fofs = new RoaringBitmap();
-                friends = nodeFriendsLocal.get((int)pair.other().getId());
+                friends = nodeFriends.get((int) pair.other().getId());
                 intIterator = friends.getIntIterator();
                 while (intIterator.hasNext()) {
-                    fofs.or(nodeFriendsLocal.get(intIterator.next()));
+                    fofs.or(nodeFriends.get(intIterator.next()));
                 }
                 ArrayList<Pair<String, Integer>> counts = new ArrayList<>();
                 intIterator = fofs.getIntIterator();
                 while (intIterator.hasNext()) {
                     fof = intIterator.next();
-                    int cardinality = RoaringBitmap.and(friends, nodeFriendsLocal.get(fof)).getCardinality();
-                    if (cardinality <= 5) continue;
-                    counts.add(Pair.of(usernamesLocal.get(fof), cardinality));
+                    int cardinality = RoaringBitmap.and(friends, nodeFriends.get(fof)).getCardinality();
+                    if (cardinality <= 5) continue; // short circuit for class
+                    counts.add(Pair.of(usernames.get(fof), cardinality));
                 }
                 counts.sort(Comparator.comparingInt(Pair<String, Integer>::other).reversed());
                 for (Pair<String, Integer> count : counts) {
@@ -525,56 +516,56 @@ public class Procedures {
         return Stream.of(new StringResult("Report written to " + path));
     }
 
-    @Procedure(value="com.maxdemarzi.fic.global")
-    @Description(value="com.maxdemarzi.fic.global(String path)")
-    public Stream<StringResult> friendsInCommonGlobal(@Name(value="path") String path) throws IOException {
+    @Procedure(value = "com.maxdemarzi.fic.distribution")
+    @Description(value = "com.maxdemarzi.fic.distribution")
+    public Stream<CountValueResult> friendsInCommonDistribution() {
+        long start = System.nanoTime();
         if (graph == null) {
             graph = this.db;
         }
         ResourceIterator userIterator = db.findNodes(Label.label("User"));
-        ArrayList<Pair<String, Node>> users = new ArrayList<>();
+
+        Map<Long, long[]> instances = new HashMap<>();
+        Roaring64NavigableMap seen = new Roaring64NavigableMap();
+        int count = 0;
         while (userIterator.hasNext()) {
-            Node user = (Node)userIterator.next();
-            String username = usernamesGlobal.get((int)user.getId());
-            users.add(Pair.of(username, user));
-        }
-        users.sort(Comparator.comparing(Pair<String, Node>::first));
+            Node user = (Node) userIterator.next();
+            RoaringBitmap friendsMap = nodeFriends.get((int) user.getId());
+            int[] friends = friendsMap.toArray();
 
-        RoaringBitmap fofs;
-        RoaringBitmap friends;
-        IntIterator intIterator;
-
-        File file = new File(path);
-        CsvWriter csvWriter = new CsvWriter();
-        try (CsvAppender csvAppender = csvWriter.append(file, StandardCharsets.UTF_8)){
-            csvAppender.appendLine("user", "fof", "fic_count");
-            int userCount = 0;
-            for (Pair<String, Node> pair : users) {
-                int fof;
-                if (userCount++ > 100) {
-                    break;
-                }
-                fofs = new RoaringBitmap();
-                friends = nodeFriendsGlobal.get((int)pair.other().getId());
-                intIterator = friends.getIntIterator();
-                while (intIterator.hasNext()) {
-                    fofs.or(nodeFriendsGlobal.get(intIterator.next()));
-                }
-                ArrayList<Pair<String, Integer>> counts = new ArrayList<>();
-                intIterator = fofs.getIntIterator();
-                while (intIterator.hasNext()) {
-                    fof = intIterator.next();
-                    int cardinality = RoaringBitmap.and(friends, nodeFriendsGlobal.get(fof)).getCardinality();
-                    if (cardinality <= 5) continue;
-                    counts.add(Pair.of(usernamesGlobal.get(fof), cardinality));
-                }
-                counts.sort(Comparator.comparingInt(Pair<String, Integer>::other).reversed());
-                for (Pair<String, Integer> count : counts) {
-                    csvAppender.appendLine(pair.first(), count.first(), String.valueOf(count.other()));
+            for (int i = 0; i < friends.length; i++) {
+                for (int j = i + 1; j < friends.length; j++) {
+                    // What if we do the counting here instead?
+                    long key = (((long)friends[i]) << 32) | (friends[j] & 0xffffffffL);
+                    seen.add(key);
                 }
             }
+            if(count++ % 1000 == 0) {
+                log.warn("On User # " + count + " at " + TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start));
+            }
         }
-        return Stream.of(new StringResult("Report written to " + path));
-    }
 
+        log.warn("Gathered combinations at " + TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start));
+        count = 0;
+        Iterator<Long> iterator = seen.iterator();
+        long size = seen.getLongCardinality();
+        while(iterator.hasNext()) {
+            long l = iterator.next();
+            int firstNodeId = (int)(l >> 32);
+            int secondNodeId = (int)l;
+            long common = RoaringBitmap.and(nodeFriends.get(firstNodeId), nodeFriends.get(secondNodeId)).getCardinality();
+            instances.putIfAbsent(common, new long[]{0L});
+            instances.get(common)[0]++;
+            if(count++ % 1_000_000 == 0) {
+                log.warn("On Combination # " + count + " of " + size + " at " + TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start));
+            }
+
+        }
+
+        return instances.entrySet()
+                .stream()
+                .sorted(Comparator.comparingLong(Map.Entry<Long, long[]>::getKey))
+                .map(entry -> new CountValueResult(entry.getKey(), entry.getValue()[0]));
+
+    }
 }
