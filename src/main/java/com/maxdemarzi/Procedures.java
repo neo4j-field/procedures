@@ -535,7 +535,6 @@ public class Procedures {
 
             for (int i = 0; i < friends.length; i++) {
                 for (int j = i + 1; j < friends.length; j++) {
-                    // What if we do the counting here instead?
                     long key = (((long)friends[i]) << 32) | (friends[j] & 0xffffffffL);
                     seen.add(key);
                 }
@@ -556,10 +555,9 @@ public class Procedures {
             long common = RoaringBitmap.and(nodeFriends.get(firstNodeId), nodeFriends.get(secondNodeId)).getCardinality();
             instances.putIfAbsent(common, new long[]{0L});
             instances.get(common)[0]++;
-            if(count++ % 1_000_000 == 0) {
+            if(count++ % 50_000_000 == 0) {
                 log.warn("On Combination # " + count + " of " + size + " at " + TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start));
             }
-
         }
 
         return instances.entrySet()
