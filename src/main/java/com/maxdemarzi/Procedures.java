@@ -445,7 +445,7 @@ public class Procedures {
     private static GraphDatabaseService graph;
 
     private static final LoadingCache<Integer, String> usernames = Caffeine.newBuilder()
-            .maximumSize(100000L)
+            .maximumSize(100001L)
             .build(Procedures::getNodeUsername);
 
     private static final LoadingCache<Integer, RoaringBitmap> nodeFriends = Caffeine.newBuilder()
