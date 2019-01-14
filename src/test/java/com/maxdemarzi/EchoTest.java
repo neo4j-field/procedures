@@ -9,6 +9,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.neo4j.driver.v1.Values.parameters;
 
+
 public class EchoTest {
     @Rule
     public final Neo4jRule neo4j = new Neo4jRule()
@@ -28,6 +29,8 @@ public class EchoTest {
             // When I use the procedure
             StatementResult result = session.run( "CALL com.maxdemarzi.echo($something)",
                     parameters( "something", "It works!" ) );
+
+
 
             // Then I should get what I expect
             assertThat(result.single().get("value").asString(), equalTo("It works!"));

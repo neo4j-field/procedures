@@ -31,7 +31,7 @@ public class Procedures {
     public GraphDatabaseService db;
 
     // This gives us a log instance that outputs messages to the
-    // standard log, normally found under `data/log/console.log`
+    // standard log, normally found under `data/log/neo4j.log`
     @Context
     public Log log;
 
@@ -106,7 +106,7 @@ public class Procedures {
         }
     }
 
-    @Procedure("com.maxdemarzi.network.count2")
+    @Procedure(name= "com.maxdemarzi.network.count2", mode = Mode.READ)
     @Description("com.maxdemarzi.network.count2(String username, Long distance)")
     public Stream<LongResult> networkCount2(@Name("username") String username, @Name(value = "distance", defaultValue = "1") Long distance) {
         if (distance < 1) return Stream.empty();
@@ -131,7 +131,7 @@ public class Procedures {
         }
     }
 
-    @Procedure("com.maxdemarzi.network.count3")
+    @Procedure(name ="com.maxdemarzi.network.count3", mode = Mode.READ)
     @Description("com.maxdemarzi.network.count3(String username, Long distance)")
     public Stream<LongResult> networkCount3(@Name("username") String username, @Name(value = "distance", defaultValue = "1") Long distance) {
         if (distance < 1) return Stream.empty();
@@ -156,7 +156,7 @@ public class Procedures {
         }
     }
 
-    @Procedure("com.maxdemarzi.network.count4")
+    @Procedure(name = "com.maxdemarzi.network.count4", mode = Mode.READ)
     @Description("com.maxdemarzi.network.count4(String username, Long distance)")
     public Stream<LongResult> networkCount4(@Name("username") String username, @Name(value = "distance", defaultValue = "1") Long distance) {
         if (distance < 1) return Stream.empty();
@@ -223,7 +223,7 @@ public class Procedures {
         }
     }
 
-    @Procedure("com.maxdemarzi.network.count5")
+    @Procedure(name = "com.maxdemarzi.network.count5", mode = Mode.READ)
     @Description("com.maxdemarzi.network.count5(String username, Long distance)")
     public Stream<LongResult> networkCount5(@Name("username") String username, @Name(value = "distance", defaultValue = "1") Long distance) {
         if (distance < 1) return Stream.empty();
@@ -295,7 +295,7 @@ public class Procedures {
             .thenComparing(Comparator.comparingDouble(WeightedPathResult::getWeight).reversed());
 
 
-    @Procedure("com.maxdemarzi.reach.after")
+    @Procedure(name = "com.maxdemarzi.reach.after", mode = Mode.READ)
     @Description("com.maxdemarzi.reach.after(String username1, String username2)")
     public Stream<WeightedPathResult> reachAfter(@Name("username1") String username1, @Name("username2") String username2) {
         Node user1 = db.findNode(Label.label("User"), "username", username1);
@@ -345,7 +345,7 @@ public class Procedures {
     private static final GoodFriendEvaluator evaluator = new GoodFriendEvaluator();
     private static final GoodFriendExpander expander = new GoodFriendExpander();
 
-    @Procedure("com.maxdemarzi.reach.evaluator")
+    @Procedure(name = "com.maxdemarzi.reach.evaluator", mode = Mode.READ)
     @Description("com.maxdemarzi.reach.evaluator(String username1, String username2)")
     public Stream<WeightedPathResult> reachEvaluator(@Name("username1") String username1, @Name("username2") String username2) {
         Node user1 = db.findNode(Label.label("User"), "username", username1);
@@ -380,7 +380,7 @@ public class Procedures {
         return list.stream().limit(100);
     }
 
-    @Procedure("com.maxdemarzi.reach.expander")
+    @Procedure(name = "com.maxdemarzi.reach.expander", mode = Mode.READ)
     @Description("com.maxdemarzi.reach.expander(String username1, String username2)")
     public Stream<WeightedPathResult> reachExpander(@Name("username1") String username1, @Name("username2") String username2) {
         Node user1 = db.findNode(Label.label("User"), "username", username1);
@@ -413,7 +413,7 @@ public class Procedures {
         return list.stream().limit(100);
     }
 
-    @Procedure("com.maxdemarzi.reach.both")
+    @Procedure(name = "com.maxdemarzi.reach.both", mode = Mode.READ)
     @Description("com.maxdemarzi.reach.both(String username1, String username2)")
     public Stream<WeightedPathResult> reachBoth(@Name("username1") String username1, @Name("username2") String username2) {
         Node user1 = db.findNode(Label.label("User"), "username", username1);
@@ -466,8 +466,8 @@ public class Procedures {
         return friends;
     }
 
-    @Procedure(value = "com.maxdemarzi.fic")
-    @Description(value = "com.maxdemarzi.fic(String path)")
+    @Procedure(name = "com.maxdemarzi.fic", mode = Mode.READ)
+    @Description("com.maxdemarzi.fic(String path)")
     public Stream<StringResult> friendsInCommon(@Name(value = "path") String path) throws IOException {
         if (graph == null) {
             graph = this.db;
@@ -499,6 +499,7 @@ public class Procedures {
                 while (intIterator.hasNext()) {
                     fofs.or(nodeFriends.get(intIterator.next()));
                 }
+                fofs.remove((int) pair.other().getId());
                 ArrayList<Pair<String, Integer>> counts = new ArrayList<>();
                 intIterator = fofs.getIntIterator();
                 while (intIterator.hasNext()) {
@@ -516,8 +517,8 @@ public class Procedures {
         return Stream.of(new StringResult("Report written to " + path));
     }
 
-    @Procedure(value = "com.maxdemarzi.fic.distribution")
-    @Description(value = "com.maxdemarzi.fic.distribution")
+    @Procedure(name = "com.maxdemarzi.fic.distribution", mode = Mode.READ)
+    @Description("com.maxdemarzi.fic.distribution")
     public Stream<CountValueResult> friendsInCommonDistribution() {
         long start = System.nanoTime();
         if (graph == null) {

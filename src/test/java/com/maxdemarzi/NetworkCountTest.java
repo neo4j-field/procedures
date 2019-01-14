@@ -31,7 +31,7 @@ public class NetworkCountTest {
                     parameters( "username", "User-1", "distance", 3 ) );
 
             // Then I should get what I expect
-            assertThat(result.single().get("value").asLong(), equalTo(5L));
+            assertThat(result.single().get("value").asInt(), equalTo(5));
         }
     }
 
