@@ -1,5 +1,11 @@
 # Procedures
 
+Presentations
+-------------
+
+The presentations on this repository use git large file storage ( https://git-lfs.github.com/ ).
+If you do not have this extension installed, just download the presentations from the github.com website directly.
+
 Instructions
 ------------ 
 
