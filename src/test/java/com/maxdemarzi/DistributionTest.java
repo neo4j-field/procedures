@@ -1,22 +1,33 @@
 package com.maxdemarzi;
 
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.neo4j.driver.v1.*;
-import org.neo4j.harness.junit.Neo4jRule;
+import org.neo4j.harness.ServerControls;
+import org.neo4j.harness.TestServerBuilders;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.neo4j.driver.v1.Values.parameters;
+import static org.assertj.core.api.Assertions.*;
 
 public class DistributionTest {
-    @Rule
-    public final Neo4jRule neo4j = new Neo4jRule()
+
+    private static ServerControls neo4j;
+
+    @BeforeAll
+    static void startNeo4j() {
+        neo4j = TestServerBuilders.newInProcessBuilder()
             .withProcedure(Procedures.class)
-            .withFixture(MODEL_STATEMENT);
+            .withFixture(MODEL_STATEMENT)
+            .newServer();
+    }
+
+    @AfterAll
+    static void stopNeo4j() {
+        neo4j.close();
+    }
 
     @Test
-    public void shouldReturnDistribution()
+    void shouldReturnDistribution()
     {
         // In a try-block, to make sure we close the driver after the test
         try( Driver driver = GraphDatabase.driver( neo4j.boltURI() , Config.build().withoutEncryption().toConfig() ) )
@@ -30,7 +41,7 @@ public class DistributionTest {
             StatementResult result = session.run( "CALL com.maxdemarzi.fic.distribution");
 
             // Then I should get what I expect
-            assertThat(result.list().size(), equalTo(2));
+            assertThat(result.list()).hasSize(2);
         }
     }
 
