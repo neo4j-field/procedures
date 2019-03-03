@@ -1,22 +1,34 @@
 package com.maxdemarzi;
 
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.neo4j.driver.v1.*;
-import org.neo4j.harness.junit.Neo4jRule;
+import org.neo4j.harness.ServerControls;
+import org.neo4j.harness.TestServerBuilders;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.*;
 import static org.neo4j.driver.v1.Values.parameters;
 
 
 public class EchoTest {
-    @Rule
-    public final Neo4jRule neo4j = new Neo4jRule()
-            .withProcedure(Procedures.class);
+
+    private static ServerControls neo4j;
+
+    @BeforeAll
+    static void startNeo4j() {
+        neo4j = TestServerBuilders.newInProcessBuilder()
+            .withProcedure(Procedures.class)
+            .newServer();
+    }
+
+    @AfterAll
+    static void stopNeo4j() {
+        neo4j.close();
+    }
 
     @Test
-    public void shouldEcho()
+    void shouldEcho()
     {
         // In a try-block, to make sure we close the driver after the test
         try( Driver driver = GraphDatabase.driver( neo4j.boltURI() , Config.build().withoutEncryption().toConfig() ) )
@@ -33,7 +45,7 @@ public class EchoTest {
 
 
             // Then I should get what I expect
-            assertThat(result.single().get("value").asString(), equalTo("It works!"));
+            assertThat(result.single().get("value").asString()).isEqualTo("It works!");
         }
     }
 

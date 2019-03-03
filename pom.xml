@@ -35,10 +35,19 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <!-- Be ready for JDK 11+. Also JUnit 5 requires at least 2.22.1 -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+            </plugin>
         </plugins>
     </build>
 
     <properties>
+        <assertj.version>3.11.1</assertj.version>
+        <junit-jupiter.version>5.4.0</junit-jupiter.version>
+        <maven-surefire-plugin.version>2.22.1</maven-surefire-plugin.version>
         <neo4j.version>3.5.1</neo4j.version>
         <neo4j.driver.version>1.7.2</neo4j.driver.version>
         <roaring.version>0.7.30</roaring.version>
@@ -88,9 +97,16 @@
         </dependency>
 
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit-jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
